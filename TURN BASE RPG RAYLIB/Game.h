@@ -80,7 +80,8 @@ public:
     void ShowBattleItemMenu();
     void ShowPlayerStatsAndInventory();
     void ShowSkillShop();
-
+    void ShowSkillsMenu();
+    void UseEquippedSkill();
 
 
     static const int BATTLE_LOG_MAX_LINES = 5;
@@ -137,13 +138,12 @@ private:
     Character player;
     Character enemy;
     EnemyType enemyType;
-
     std::vector<Item> inventory;
 
     void UpdateBattle();
     void DrawBattle();
     void DrawAttackEffect();
-  
+
     std::vector<Skill> availableSkills;
     std::vector<Skill> playerSkills;
 
@@ -153,8 +153,8 @@ private:
 
     void ShowVictoryScreen(int expGain, int coinGain, const std::string& enemyName);
     void ShowDefeatScreen();
- 
-   
+
+
 
 
 

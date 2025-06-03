@@ -952,6 +952,75 @@ void Game::ShowSkillShop() {
     }
 }
 
+void Game::ShowSkillsMenu() {
+    bool viewing = true;
+    int selectedSkillIndex = 0;
+    Rectangle backRect = { 20, static_cast<float>(screenHeight - 50), 180, 35 };
+
+    while (viewing && !WindowShouldClose()) {
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
+
+        DrawText("Skills (Select to Equip for Battle)", 60, 40, 28, DARKMAGENTA);
+
+        Vector2 mousePos = GetMousePosition();
+
+        int y = 100;
+        int skillHeight = 35;
+        if (playerSkills.empty()) {
+            DrawText("You don't own any skills yet.", 70, y, 22, DARKGRAY);
+        }
+        else {
+            for (size_t i = 0; i < playerSkills.size(); ++i) {
+                Rectangle skillRect = { 60.0f, (float)y, 600.0f, (float)skillHeight };
+                bool isHover = CheckCollisionPointRec(mousePos, skillRect);
+                Color bgColor = (i == selectedSkillIndex || isHover) ? DARKGOLD : CLITERAL(Color) { 220, 220, 220, 255 };
+                DrawRectangleRec(skillRect, bgColor);
+                DrawRectangleLinesEx(skillRect, 1, DARKMAGENTA);
+
+                std::string skillText = playerSkills[i].name + " - " + playerSkills[i].description;
+                if ((int)i == equippedSkillIndex) skillText += " [EQUIPPED]";
+                DrawText(skillText.c_str(), 70, y + 7, 20, BLACK);
+
+                if (isHover) selectedSkillIndex = (int)i;
+                if (isHover && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                    equippedSkillIndex = (int)i;
+                    ShowNotification("Equipped skill: " + playerSkills[i].name);
+                }
+
+                y += skillHeight + 8;
+            }
+
+            // Keyboard navigation
+            if (IsKeyPressed(KEY_DOWN)) {
+                selectedSkillIndex = (selectedSkillIndex + 1) % playerSkills.size();
+            }
+            else if (IsKeyPressed(KEY_UP)) {
+                selectedSkillIndex = (selectedSkillIndex + playerSkills.size() - 1) % playerSkills.size();
+            }
+            else if (IsKeyPressed(KEY_ENTER)) {
+                equippedSkillIndex = selectedSkillIndex;
+                ShowNotification("Equipped skill: " + playerSkills[equippedSkillIndex].name);
+            }
+        }
+
+        // Draw Back button
+        Color backColor = CheckCollisionPointRec(mousePos, backRect) ? GRAY : DARKGOLD;
+        DrawRectangleRec(backRect, backColor);
+        DrawRectangleLinesEx(backRect, 2, DARKGREEN);
+        DrawText("Back", (int)backRect.x + 10, (int)backRect.y + 8, 20, WHITE);
+
+        EndDrawing();
+
+        if (CheckCollisionPointRec(mousePos, backRect) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            viewing = false;
+        }
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            viewing = false;
+        }
+    }
+}
+
 void Game::StartBattle() {
     state = GameState::Battle;
     selectedAction = 0;
@@ -999,7 +1068,7 @@ void Game::UpdateBattle() {
         }
     }
 
-    
+
 
     // Mouse click support for action selection
     for (int i = 0; i < 5; i++) {
@@ -1521,7 +1590,7 @@ void Game::ApplyPoisonDamageIfNeeded() {
 void Game::EnemyAttack() {
     if (enemy.currentHP <= 0) return;
 
-    
+
     EnemyAction action = ChooseEnemyAction(); // Pilih aksi via AI
     int damage = 0;
 
