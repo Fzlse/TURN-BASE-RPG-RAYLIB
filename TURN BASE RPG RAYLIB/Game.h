@@ -4,12 +4,12 @@
 #include "raylib.h"
 #include <string>
 #include <vector>
-#include "NotificationObserver.h"
-#include "Command.h"
 #include <deque>
 #include <functional>
+#include "NotificationObserver.h"
+#include "Command.h"
 
-
+// Enums
 enum class GameState {
     MainMenu,
     TownSquare,
@@ -24,7 +24,22 @@ enum class GameState {
     Exit,
 };
 
-struct Character {
+enum class EnemyAction {
+    Attack,
+    Block,
+    Skill,
+    Poison // For Witch
+};
+
+enum class EnemyType {
+    Archer,
+    Warrior,
+    Paladin,
+    Witch // New enemy type
+};
+
+// Structs
+struct Character{
     std::string name;
     int maxHP;
     int currentHP;
@@ -42,144 +57,138 @@ struct Skill {
     bool owned = false;
 };
 
-enum class EnemyAction {
-    Attack,
-    Block,
-    Skill,
-    Poison // For Witch
-};
-
 struct Item {
     std::string name;
     std::string description;
     int quantity;
 };
 
-enum class EnemyType {
-    Archer,
-    Warrior,
-    Paladin,
-    Witch // New enemy type
-};
-
+// Game class
 class Game {
 public:
     Game(int screenWidth, int screenHeight);
 
+    // Main game screens
     void ShowTownSquare();
     void ShowColosseum();
     void ShowMarket();
     void ShowTavern();
     void ShowTrainingGround();
-    bool IsRunning() const;
     void ShowShop();
-    void StartBattle();
     void ShowInventory();
-    void ShowNotification(const std::string& msg);
-    void UseItem(size_t index);
-    void ShowBattleItemMenu();
-    void ShowPlayerStatsAndInventory();
     void ShowSkillShop();
     void ShowSkillsMenu();
+    void ShowPlayerStatsAndInventory();
+    void ShowBattleItemMenu();
+    void ShowNotification(const std::string& msg);
+    void ShowDeveloperMenu();
+
+
+    // Battle
+    void StartBattle();
+    void UseItem(size_t index);
     void UseEquippedSkill();
+    void PlayerAttack();
+    void PlayerSkill();
+    void PerformPlayerAction(int actionIndex);
 
-
-    static const int BATTLE_LOG_MAX_LINES = 5;
-    std::vector<std::string> battleLog;
+    // Game state
+    bool IsRunning() const;
     void Unload();
     void SetPlayerName(const std::string& name);
     std::string GetPlayerName() const;
     std::string EnterPlayerName();
 
+    // Save/Load
     void SaveGame();
     void LoadGame();
 
-    // Observer pattern methods
+    // Observer pattern
     void AddObserver(NotificationObserver* observer);
     void RemoveObserver(NotificationObserver* observer);
 
-    // Command pattern method
-    void PerformPlayerAction(int actionIndex);
-
-    // Expose these for Command pattern
-    void PlayerAttack();
-    void PlayerSkill();
-
-    // Expose for BlockCommand and RunCommand
+    // Exposed for commands
     bool isBlocking;
     GameState state;
 
-private:
-    int GetRandom(int min, int max);
+    // Battle log
+    static const int BATTLE_LOG_MAX_LINES = 5;
+    std::vector<std::string> battleLog;
 
+private:
+    // Initialization
     void InitPlayer();
-    Texture2D characterTexture;
     void InitEnemy();
     void InitEnemyForSurvival(int wave);
-    int equippedSkillIndex = -1; // -1 means no skill equipped
+
+    // Enemy AI
+    EnemyAction ChooseEnemyAction() const;
+    int GetRandom(int min, int max) const;
+
+    // Battle logic
+    void UpdateBattle();
+    void DrawBattle();
+    void DrawAttackEffect();
+    void EnemyAttack();
+    void CheckBattleResult();
+    void ApplyPoisonDamageIfNeeded();
+
+    // Battle results
+    void ShowVictoryScreen(int expGain, int coinGain, const std::string& enemyName);
+    void ShowDefeatScreen();
+
+    // Members
+    int screenWidth;
+    int screenHeight;
+    bool running = true;
+
+    Character player;
+    Character enemy;
+    EnemyType enemyType;
+
+    std::vector<Item> inventory;
+    std::vector<Skill> availableSkills;
+    std::vector<Skill> playerSkills;
 
 
+    // In class Game (private section)
+    Texture2D characterTexture;
+    Texture2D archerTexture;
+    Texture2D warriorTexture;
+    Texture2D paladinTexture;
+    Texture2D witchTexture;
+    Texture2D enemyTexture;
 
-    int enemyLevel;  // Level independen dari player
-    int baseEnemyExp;  // EXP dasar yang diberikan enemy
-    int baseEnemyCoins; // Koin dasar yang diberikan enemy
+
+    int equippedSkillIndex = -1;
+    int enemyLevel;
+    int baseEnemyExp;
+    int baseEnemyCoins;
     bool enemyBlocking = false;
     EnemyAction lastEnemyAction = EnemyAction::Attack;
     int enemySkillCooldown = 0;
 
     bool playerPoisoned = false;
     int poisonTurns = 0;
-    void ApplyPoisonDamageIfNeeded();
 
-    // AI: Pilih aksi enemy secara adaptif
-    EnemyAction ChooseEnemyAction() const;
-    int GetRandom(int min, int max) const;
+    int playerCoins = 0;
+    int selectedAction = 0;
 
-    Character player;
-    Character enemy;
-    EnemyType enemyType;
-    std::vector<Item> inventory;
-
-    void UpdateBattle();
-    void DrawBattle();
-    void DrawAttackEffect();
-
-    std::vector<Skill> availableSkills;
-    std::vector<Skill> playerSkills;
-
-
-    void EnemyAttack();
-    void CheckBattleResult();
-
-    void ShowVictoryScreen(int expGain, int coinGain, const std::string& enemyName);
-    void ShowDefeatScreen();
-
-
-
-
-
-    int screenWidth;
-    int screenHeight;
-
-    bool running;
-
-    int playerCoins;
-    int selectedAction;
-
-    int skillCooldownTurns;
-    bool skillOnCooldown;
+    int skillCooldownTurns = 0;
+    bool skillOnCooldown = false;
 
     std::string notificationText;
-    int notificationTimer; // in frames
+    int notificationTimer = 0;
 
-    bool showAttackEffect;
-    int attackEffectFrame;
+    bool showAttackEffect = false;
+    int attackEffectFrame = 0;
 
-    bool isPlayerTurn;
+    bool isPlayerTurn = true;
     bool skipEnemyTurn = false;
 
-    // Observer pattern
     std::vector<NotificationObserver*> observers;
 };
 
 #endif // GAME_H
+
+

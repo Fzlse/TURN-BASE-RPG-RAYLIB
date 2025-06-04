@@ -48,12 +48,16 @@ Game::Game(int screenW, int screenH)
     isPlayerTurn(true), isBlocking(false), skillOnCooldown(false)
 {
     characterTexture = LoadTexture("assets/character.png");
+    archerTexture = LoadTexture("assets/archer.png");
+    warriorTexture = LoadTexture("assets/warrior.png");
+    paladinTexture = LoadTexture("assets/paladin.png");
+    witchTexture = LoadTexture("assets/witch.png");
+    enemyTexture = { 0 };
 
-    // Initialize available skills
     availableSkills = {
-        { "Blazing Strike", "A powerful fire attack. (Unlocks Skill in battle)", 50, false },
-        { "Frost Guard", "Reduces damage for 2 turns. (Unlocks Skill in battle)", 40, false },
-        { "Thunder Dash", "Quick attack, always goes first. (Unlocks Skill in battle)", 60, false }
+        { "Blazing Strike", "A powerful fire attack.)", 50, false },
+        { "Frost Guard", "Reduces damage for 2 turns.", 40, false },
+        { "Thunder Dash", "Quick attack, always goes first.", 60, false }
     };
 
     srand(static_cast<unsigned int>(time(nullptr)));
@@ -65,6 +69,10 @@ Game::Game(int screenW, int screenH)
 
 void Game::Unload() {
     UnloadTexture(characterTexture);
+    UnloadTexture(archerTexture);
+    UnloadTexture(warriorTexture);
+    UnloadTexture(paladinTexture);
+    UnloadTexture(witchTexture);
 }
 
 bool Game::IsRunning() const {
@@ -175,15 +183,19 @@ void Game::InitEnemy() {
     switch (enemyType) {
     case EnemyType::Archer:
         factory = new ArcherFactory();
+        enemyTexture = archerTexture;
         break;
     case EnemyType::Warrior:
         factory = new WarriorFactory();
+        enemyTexture = warriorTexture;
         break;
     case EnemyType::Paladin:
         factory = new PaladinFactory();
+        enemyTexture = paladinTexture;
         break;
     case EnemyType::Witch:
         factory = new WitchFactory();
+        enemyTexture = witchTexture;
         break;
     }
 
@@ -240,6 +252,10 @@ void Game::ShowTownSquare() {
         DrawRectangleRec(exitBtn, exitColor);
         DrawText("Exit to Main Menu", exitBtn.x + 20, exitBtn.y + 15, 24, BLACK);
 
+        if (IsKeyPressed(KEY_F12)) {
+            ShowDeveloperMenu();
+        }
+
         EndDrawing();
 
         // Mouse input
@@ -275,6 +291,57 @@ void Game::ShowTownSquare() {
         }
     }
 }
+
+void Game::ShowDeveloperMenu() {
+    bool editing = true;
+    int selected = 0;
+    const int fieldCount = 8;
+    int* fields[fieldCount] = {
+        &player.maxHP,
+        &player.currentHP,
+        &player.attack,
+        &player.defense,
+        &player.level,
+        &playerCoins,
+        &player.exp,
+        &player.expToLevel
+    };
+    const char* labels[fieldCount] = {
+        "Max HP",
+        "Current HP",
+        "Attack",
+        "Defense",
+        "Level",
+        "Coins",
+        "EXP",
+        "EXP To Level"
+    };
+
+    while (editing && !WindowShouldClose()) {
+        BeginDrawing();
+        ClearBackground(DARKGRAY);
+        DrawText("Developer Menu - Edit Player Values", 40, 40, 28, GOLD);
+        DrawText("Use UP/DOWN to select, LEFT/RIGHT to change, ESC to exit", 40, 80, 20, LIGHTGRAY);
+
+        int y = 130;
+        for (int i = 0; i < fieldCount; ++i) {
+            Color color = (i == selected) ? YELLOW : WHITE;
+            char buf[128];
+            snprintf(buf, sizeof(buf), "%s: %d", labels[i], *fields[i]);
+            DrawText(buf, 60, y, 24, color);
+            y += 36;
+        }
+
+        EndDrawing();
+
+        if (IsKeyPressed(KEY_DOWN)) selected = (selected + 1) % fieldCount;
+        if (IsKeyPressed(KEY_UP)) selected = (selected + fieldCount - 1) % fieldCount;
+        if (IsKeyPressed(KEY_RIGHT)) (*fields[selected]) += 1;
+        if (IsKeyPressed(KEY_LEFT)) (*fields[selected]) -= 1;
+        if (IsKeyPressed(KEY_ESCAPE)) editing = false;
+    }
+}
+
 
 void Game::ShowColosseum() {
     state = GameState::Colosseum;
@@ -1137,6 +1204,24 @@ void Game::UpdateBattle() {
 
 
 void Game::DrawBattle() {
+
+    float desiredHeight = 200.0f; // Target height in pixels for both textures
+    float scale = desiredHeight / 3000.0f; // 3000 is the original texture height
+
+    // Player position (left side, vertically centered)
+    float playerX = 60.0f;
+    float playerY = (float)screenHeight / 2.0f - desiredHeight / 2.0f;
+
+    // Enemy position (right side, vertically centered)
+    float enemyX = (float)screenWidth - 60.0f - desiredHeight; // 60px from right, width = desiredHeight
+    float enemyY = (float)screenHeight / 2.0f - desiredHeight / 2.0f;
+
+    // Draw player texture
+    DrawTextureEx(characterTexture, Vector2{ playerX, playerY }, 0.0f, scale, WHITE);
+
+    // Draw enemy texture
+    DrawTextureEx(enemyTexture, Vector2{ enemyX, enemyY }, 0.0f, scale, WHITE);
+
     std::string playerLvl = player.name + " - Lvl " + std::to_string(player.level);
     DrawText(playerLvl.c_str(), 20, 20, 20, DARKBLUE);
 
@@ -1677,10 +1762,6 @@ void Game::CheckBattleResult() {
     }
 }
 
-int Game::GetRandom(int min, int max) {
-    return min + rand() % (max - min + 1);
-}
-
 void Game::SaveGame() {
     std::ofstream out("save.dat", std::ios::binary);
     if (!out) return;
@@ -1699,6 +1780,23 @@ void Game::SaveGame() {
     out.write(reinterpret_cast<const char*>(&playerCoins), sizeof(int));
     out.write(reinterpret_cast<const char*>(&player.exp), sizeof(int));
     out.write(reinterpret_cast<const char*>(&player.expToLevel), sizeof(int));
+
+    // Save equipped skill index
+    out.write(reinterpret_cast<const char*>(&equippedSkillIndex), sizeof(int));
+
+    // Save player skills
+    size_t skillCount = playerSkills.size();
+    out.write(reinterpret_cast<const char*>(&skillCount), sizeof(size_t));
+    for (const auto& skill : playerSkills) {
+        size_t nameLen = skill.name.size();
+        size_t descLen = skill.description.size();
+        out.write(reinterpret_cast<const char*>(&nameLen), sizeof(size_t));
+        out.write(skill.name.c_str(), nameLen);
+        out.write(reinterpret_cast<const char*>(&descLen), sizeof(size_t));
+        out.write(skill.description.c_str(), descLen);
+        out.write(reinterpret_cast<const char*>(&skill.price), sizeof(int));
+        out.write(reinterpret_cast<const char*>(&skill.owned), sizeof(bool));
+    }
 
     // Save inventory
     size_t invSize = inventory.size();
@@ -1736,6 +1834,27 @@ void Game::LoadGame() {
     in.read(reinterpret_cast<char*>(&player.exp), sizeof(int));
     in.read(reinterpret_cast<char*>(&player.expToLevel), sizeof(int));
 
+    // Load equipped skill index
+    in.read(reinterpret_cast<char*>(&equippedSkillIndex), sizeof(int));
+
+    // Load player skills
+    size_t skillCount = 0;
+    in.read(reinterpret_cast<char*>(&skillCount), sizeof(size_t));
+    playerSkills.clear();
+    for (size_t i = 0; i < skillCount; ++i) {
+        Skill skill;
+        size_t nameLen = 0, descLen = 0;
+        in.read(reinterpret_cast<char*>(&nameLen), sizeof(size_t));
+        skill.name.resize(nameLen);
+        in.read(&skill.name[0], nameLen);
+        in.read(reinterpret_cast<char*>(&descLen), sizeof(size_t));
+        skill.description.resize(descLen);
+        in.read(&skill.description[0], descLen);
+        in.read(reinterpret_cast<char*>(&skill.price), sizeof(int));
+        in.read(reinterpret_cast<char*>(&skill.owned), sizeof(bool));
+        playerSkills.push_back(skill);
+    }
+
     // Load inventory
     size_t invSize = 0;
     in.read(reinterpret_cast<char*>(&invSize), sizeof(size_t));
@@ -1754,3 +1873,4 @@ void Game::LoadGame() {
     }
     in.close();
 }
+
