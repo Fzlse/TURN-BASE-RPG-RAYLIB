@@ -82,6 +82,7 @@ public:
     void ShowBattleItemMenu();
     void ShowNotification(const std::string& msg);
     void ShowDeveloperMenu();
+    void ShowLoadingScreen(const std::string& message, std::function<void()> work);
 
 
     // Battle

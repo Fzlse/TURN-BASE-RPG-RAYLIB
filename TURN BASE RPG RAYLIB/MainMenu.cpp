@@ -1,9 +1,48 @@
 #include "MainMenu.h"
-
+#include "raylib.h"
 #include <iostream>
 
-// Implementasi Button
 
+void ShowLoadingScreen(const char* message, int totalSteps = 10) {
+    double loadingStart = GetTime();
+
+    for (int step = 0; step <= totalSteps && !WindowShouldClose(); ++step) {
+        BeginDrawing();
+        ClearBackground(WHITE); // Set background to white
+
+        // Draw loading message
+        int fontSize = 30;
+        int textWidth = MeasureText(message, fontSize);
+        DrawText(message, GetScreenWidth() / 2 - textWidth / 2, GetScreenHeight() / 2 - 80, fontSize, BLACK);
+
+        // Draw animated dots
+        int dotCount = (int)(GetTime() * 2) % 4; // cycles 0-3
+        std::string dots(dotCount, '.');
+        int dotsWidth = MeasureText(dots.c_str(), fontSize);
+        DrawText(dots.c_str(), GetScreenWidth() / 2 + textWidth / 2 + 10, GetScreenHeight() / 2 - 80, fontSize, BLACK);
+
+        // Draw progress bar background
+        int barWidth = 400;
+        int barHeight = 30;
+        int barX = GetScreenWidth() / 2 - barWidth / 2;
+        int barY = GetScreenHeight() / 2;
+        DrawRectangle(barX, barY, barWidth, barHeight, DARKGRAY);
+
+        // Draw progress bar fill
+        float progress = (float)step / totalSteps;
+        DrawRectangle(barX, barY, (int)(barWidth * progress), barHeight, SKYBLUE);
+
+        // Draw progress percent
+        char percentText[16];
+        snprintf(percentText, sizeof(percentText), "%d%%", (int)(progress * 100));
+        int percentWidth = MeasureText(percentText, 20);
+        DrawText(percentText, GetScreenWidth() / 2 - percentWidth / 2, barY + barHeight + 10, 20, BLACK);
+
+        EndDrawing();
+    }
+}
+
+// Implementasi Button
 Button::Button(float x, float y, float w, float h, const char* t)
     : rect{ x, y, w, h }, text(t), hovered(false) {
 }
@@ -69,19 +108,16 @@ bool MainMenu::Show() {
         btnCredit.hovered = btnCredit.IsMouseOver(mousePos);
         btnExit.hovered = btnExit.IsMouseOver(mousePos);
 
-        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-            if (btnStart.hovered) {
-                return true;  // Mulai game
-            }
-            else if (btnCredit.hovered) {
-                BeginDrawing();
-                ShowCredits();
-                BeginDrawing();
-            }
-            else if (btnExit.hovered) {
-                CloseWindow();
-                return false;  // Keluar game
-            }
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && btnStart.hovered) {
+            ShowLoadingScreen("Loading...", 1000); // Show for 1 second
+            return true; // Indicate start was pressed
+        }
+        else if (btnCredit.hovered && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            ShowCredits();
+        }
+        else if (btnExit.hovered && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            CloseWindow();
+            return false;  // Exit game
         }
 
         BeginDrawing();
@@ -97,3 +133,4 @@ bool MainMenu::Show() {
     }
     return false;
 }
+
