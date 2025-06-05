@@ -86,8 +86,9 @@ void MainMenu::ShowCredits() const {
         BeginDrawing();
         ClearBackground(BLACK);
 
-        DrawText("Created by aku", screenWidth / 2 - 100, screenHeight / 2 - 20, 20, WHITE);
-        DrawText("Press any key or click to return", screenWidth / 2 - 160, screenHeight / 2 + 20, 20, WHITE);
+        DrawText("Dibuat oleh Muhammad Andra Ramadhani", screenWidth / 2 - 180, screenHeight / 2 - 30, 20, WHITE);
+        DrawText("dan Keyvalle Kirana Tirta", screenWidth / 2 - 120, screenHeight / 2, 20, WHITE);
+        DrawText("Press any key or click to return", screenWidth / 2 - 160, screenHeight / 2 + 40, 20, WHITE);
 
         EndDrawing();
 

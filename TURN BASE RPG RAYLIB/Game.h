@@ -159,6 +159,7 @@ private:
     Texture2D paladinTexture;
     Texture2D witchTexture;
     Texture2D enemyTexture;
+    Texture2D battleBgTexture;
 
 
     int equippedSkillIndex = -1;

@@ -52,6 +52,7 @@ Game::Game(int screenW, int screenH)
     warriorTexture = LoadTexture("assets/warrior.png");
     paladinTexture = LoadTexture("assets/paladin.png");
     witchTexture = LoadTexture("assets/witch.png");
+    battleBgTexture = LoadTexture("assets/battle_bg.png"); // Make sure this file exists
     enemyTexture = { 0 };
 
     availableSkills = {
@@ -73,6 +74,7 @@ void Game::Unload() {
     UnloadTexture(warriorTexture);
     UnloadTexture(paladinTexture);
     UnloadTexture(witchTexture);
+    UnloadTexture(battleBgTexture);
 }
 
 bool Game::IsRunning() const {
@@ -1207,7 +1209,8 @@ void Game::DrawBattle() {
 
     float desiredHeight = 200.0f; // Target height in pixels for both textures
     float scale = desiredHeight / 3000.0f; // 3000 is the original texture height
-
+    int infoFontSize = 28;
+    int infoPadding = 10;
     // Player position (left side, vertically centered)
     float playerX = 60.0f;
     float playerY = (float)screenHeight / 2.0f - desiredHeight / 2.0f;
@@ -1216,26 +1219,44 @@ void Game::DrawBattle() {
     float enemyX = (float)screenWidth - 60.0f - desiredHeight; // 60px from right, width = desiredHeight
     float enemyY = (float)screenHeight / 2.0f - desiredHeight / 2.0f;
 
+    DrawTexture(battleBgTexture, -120, -500, WHITE);
+
     // Draw player texture
     DrawTextureEx(characterTexture, Vector2{ playerX, playerY }, 0.0f, scale, WHITE);
 
     // Draw enemy texture
     DrawTextureEx(enemyTexture, Vector2{ enemyX, enemyY }, 0.0f, scale, WHITE);
 
+    // Player Info Background
+    int playerInfoWidth = 320;
+    int playerInfoHeight = infoFontSize * 3 + infoPadding * 4;
+    DrawRectangle(10, 10, playerInfoWidth, playerInfoHeight, Fade(BLACK, 0.4f));
+
+    // Player Name & Level
     std::string playerLvl = player.name + " - Lvl " + std::to_string(player.level);
-    DrawText(playerLvl.c_str(), 20, 20, 20, DARKBLUE);
+    DrawText(playerLvl.c_str(), 20, 20, infoFontSize, SKYBLUE);
 
+    // Player HP
     std::string playerHP = "HP: " + std::to_string(player.currentHP) + "/" + std::to_string(player.maxHP);
-    DrawText(playerHP.c_str(), 20, 50, 20, RED);
+    DrawText(playerHP.c_str(), 20, 20 + infoFontSize + infoPadding, infoFontSize, LIME);
 
-    std::string enemyLvl = enemy.name + " Lvl " + std::to_string(enemy.level);
-    DrawText(enemyLvl.c_str(), screenWidth - 200, 20, 20, MAROON);
-
-    std::string enemyHP = "HP: " + std::to_string(enemy.currentHP) + "/" + std::to_string(enemy.maxHP);
-    DrawText(enemyHP.c_str(), screenWidth - 200, 50, 20, RED);
-
+    // Player EXP
     std::string expText = "EXP: " + std::to_string(player.exp) + "/" + std::to_string(player.expToLevel);
-    DrawText(expText.c_str(), 20, 80, 20, DARKMAGENTA);
+    DrawText(expText.c_str(), 20, 20 + (infoFontSize + infoPadding) * 2, infoFontSize, GREEN);
+
+    // Enemy Info Background
+    int enemyInfoWidth = 320;
+    int enemyInfoHeight = infoFontSize * 2 + infoPadding * 3;
+    int enemyInfoX = screenWidth - enemyInfoWidth - 10;
+    DrawRectangle(enemyInfoX, 10, enemyInfoWidth, enemyInfoHeight, Fade(BLACK, 0.4f));
+
+    // Enemy Name & Level
+    std::string enemyLvl = enemy.name + " Lvl " + std::to_string(enemy.level);
+    DrawText(enemyLvl.c_str(), enemyInfoX + 10, 20, infoFontSize, ORANGE);
+
+    // Enemy HP
+    std::string enemyHP = "HP: " + std::to_string(enemy.currentHP) + "/" + std::to_string(enemy.maxHP);
+    DrawText(enemyHP.c_str(), enemyInfoX + 10, 20 + infoFontSize + infoPadding, infoFontSize, LIME);
 
     const char* actions[5] = { "Attack", "Skill", "Block", "Item", "Run" };
     Vector2 mousePos = GetMousePosition();
